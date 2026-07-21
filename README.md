@@ -1,41 +1,47 @@
-# HENTUX Equicord Plugins
+<p align="center">
+  <img src="https://cdn3.emoji.gg/emojis/252073-bluestaffbadge.png" width="120" alt="Logo"/>
+</p>
 
-Custom plugins and fixes for Equicord.
+<h1 align="center">Equicord Userplugins</h1>
+
+<p align="center">
+  Custom plugins and fixes for Equicord Discord client.
+</p>
+
+<p align="center">
+  <a href="https://guns.lol/ovd">guns.lol/ovd</a>
+</p>
+
+---
 
 ## Quick Restore
 
 ```powershell
-# Clone Equicord
 git clone https://github.com/Equicord/Equicord
 cd Equicord\Equicord
 
-# Clone this repo
-git clone https://github.com/HENTUX/HENTUX-Equicord-Plugins plugins-tmp
+git clone https://github.com/HENTUX/userplugins.git plugins-tmp
 
-# Copy plugins
 Copy-Item "plugins-tmp\userplugins\*" "src\userplugins\" -Recurse -Force
 Copy-Item "plugins-tmp\messagePopover.ts" "src\plugins\_api\messagePopover.ts" -Force
 
-# Install, build, pack
 $env:CI="true"; pnpm install
 pnpm build desktop
-npx @electron/asar pack dist/desktop "C:\Users\GIGABYTE\AppData\Local\Discord\app-1.0.9249\resources\app.asar"
+npx @electron/asar pack dist/desktop "$env:LOCALAPPDATA\Discord\app-1.0.9249\resources\app.asar"
 
-# Restart Discord
+Restart Discord
 ```
 
 ## Add New Plugin
 
 ```powershell
-# Copy plugin to src\userplugins\
-# Then rebuild:
+Copy-Item "PluginFolder" "src\userplugins\" -Recurse
 cd Equicord\Equicord
 pnpm build desktop
-npx @electron/asar pack dist/desktop "C:\Users\GIGABYTE\AppData\Local\Discord\app-1.0.9249\resources\app.asar"
-# Restart Discord
+npx @electron/asar pack dist/desktop "$env:LOCALAPPDATA\Discord\app-1.0.9249\resources\app.asar"
+Restart Discord
 ```
 
-## Files
+## Plugins (56)
 
-- `userplugins/` - 56 custom plugins
-- `messagePopover.ts` - Fix for popover buttons (viewRaw, hideAttachments, etc.)
+autoDeleteDms, bannersEverywhereFocusPause, bd_accountswitcher, bd_usernamehistory, bd_yabdp4nitro, BetterInbox, BigFileUploadEnhanced, blacklist, Boo, botRoleColor, channelScratchpad, christmasCounter, completeDiscordQuest, ConsoleWatcher, customPluginsUpdater, customServerBanners, CustomStreamPreview, customUserCommands, DiscordArabicizer, discordDevBanner, discordLyricsSpotifyStatus, dynamicChannelBackground, esharqDiagnostics, Fake-Def, fakeProfile, fakeServerBoost, followGod, FriendFreaky, guildCopier, laisse, localChannelAliases, messageCleaner, multiInstance, NitroSniper, noDefaultHangStatus, notifyUserChanges, passwordManager, PerformanceBoost, personalBadges, PlatformEmulator, prettyChannelNames, RPCStats, screenShareDevices, selfDestruct, silentDelete, SilentEdit, slowmodeAssistant, soundboardGod, streamWatcherIndicator, TempMessage, tokenLogin, tosuRpc, userPfpServerAvatarFix, vAnalyzer, voiceChannelLogger, YoutubeRPC

@@ -258,7 +258,7 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
 export default definePlugin({
     name: "Blacklist",
     description: "Advanced message warning and blacklist system. Append warning footers to messages, blacklist users and keywords, with randomized presets and per-server configuration.",
-    authors: [{ name: "GIGABYTE", id: 1389444830882562131n }],
+    authors: [{ name: "HENTUX", id: 1389444830882562131n }],
     settings,
 
     chatBarButton: {
