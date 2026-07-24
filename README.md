@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="https://cdn3.emoji.gg/emojis/754853-staff.png" width="400">
 </p>
 
@@ -54,18 +54,20 @@
 | `TempMessage` | `TokenCopier` | `tokenLogin` |
 | `tosuRpc` | `UltimateProfileBadgeEditor` | `userPfpServerAvatarFix` |
 | `vAnalyzer` | `vc-junkCleanup` | `viewRawEnhanced` |
-| `voiceChannelLogger` | `YoutubeRPC` | |
-
+| `voiceChannelLogger` | `YoutubeRPC` |  |
 ---
 
 ## Install
-```bash
+``bash
 git clone https://github.com/HENTUX/userplugins.git
-```
+``
+
 1. Copy `userplugins/*` into your Equicord `src/userplugins/` folder
 2. Copy source patches to their respective locations
 3. Build and install:
-```bash
+``bash
 pnpm build desktop
 npx @electron/asar pack "dist/desktop" "app.asar"
-```
+``
+
+4. Copy `app.asar` to `%localappdata%\Discord\app-1.0.9249\resources\app.asar`

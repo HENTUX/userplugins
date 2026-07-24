@@ -6,7 +6,7 @@
 
 import "./styles.css";
 
-import { Devs } from "@utils/constants";
+import { Devs, AtlasXGODDevs } from "@utils/constants";
 import definePlugin from "@utils/types";
 
 import { makeDevBanner, settings } from "./components";
@@ -15,7 +15,7 @@ export default definePlugin({
     name: "DevBanner",
     description: "Enables the developer banner, in which displays the build-ID",
     tags: ["Appearance", "Console", "Developers"],
-    authors: [Devs.sqaaakoi, Devs.thororen],
+    authors: [AtlasXGODDevs.KrystalSkull, Devs.thororen],
     settings,
     patches: [
         {

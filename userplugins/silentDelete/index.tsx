@@ -6,10 +6,10 @@
 
 import { ApplicationCommandInputType, ApplicationCommandOptionType, sendBotMessage } from "@api/Commands";
 import { findGroupChildrenByChildId, NavContextMenuPatchCallback } from "@api/ContextMenu";
-import { addMessagePopoverButton as addButton, removeMessagePopoverButton as removeButton } from "@api/MessagePopover";
+
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { ChannelStore, Constants, Menu, RestAPI, UserStore } from "@webpack/common";
+import { ChannelStore, Constants, Menu, MessageStore, RestAPI, UserStore } from "@webpack/common";
 
 const settings = definePluginSettings({
     replacementText: {
@@ -31,6 +31,11 @@ const settings = definePluginSettings({
         type: OptionType.BOOLEAN,
         description: "Delete the original message from server. If disabled, the original message will reappear on client restart.",
         default: true
+    },
+    silentDeleteOnEmptyEdit: {
+        type: OptionType.BOOLEAN,
+        description: "Silently delete a message whenever you submit an edit with the content fully erased.",
+        default: false
     },
     purgeInterval: {
         type: OptionType.NUMBER,
@@ -102,13 +107,26 @@ const messageContextMenuPatch: NavContextMenuPatchCallback = (children, { messag
 export default definePlugin({
     name: "SilentDelete",
     description: "\"Silently\" deletes a message. Bypass message loggers by replacing the message with a placeholder.",
-    authors: [{ name: "naxiwow", id: 875342291001278504n }],
+    authors: [
+        { name: "Aurick", id: 1348025017233047634n },
+        { name: "appleflyer", id: 1209096766075703368n }
+    ],
     dependencies: ["MessagePopoverAPI", "CommandsAPI"],
     settings,
-    enabledByDefault: true,
 
     contextMenus: {
         "message": messageContextMenuPatch
+    },
+
+    async onBeforeMessageEdit(channelId, messageId, messageObj) {
+        if (!settings.store.silentDeleteOnEmptyEdit || messageObj.content.length !== 0) return;
+
+        const msg = MessageStore.getMessage(channelId, messageId);
+        if (!msg || msg.author.id !== UserStore.getCurrentUser().id || msg.deleted) return;
+
+        if (await silentDeleteMessage(channelId, messageId)) {
+            return { cancel: true };
+        }
     },
 
     commands: [
@@ -120,11 +138,11 @@ export default definePlugin({
                 name: "count",
                 description: "Number of your messages to silently delete (1-100)",
                 type: ApplicationCommandOptionType.INTEGER,
-                required: true
+                required: true,
             }],
             execute: (opts, ctx) => {
                 const count = Number(opts.find(o => o.name === "count")?.value);
-                if (!count || count < 1 || count > 100) return;
+                if (!count || count < 1) return;
 
                 const channelId = ctx.channel.id;
                 const currentUserId = UserStore.getCurrentUser().id;
@@ -174,9 +192,10 @@ export default definePlugin({
         }
     ],
 
-    start() {
-        addButton("SilentDelete", msg => {
-            if (msg.author.id !== UserStore.getCurrentUser().id || msg.deleted) return null;
+    messagePopoverButton: {
+        icon: SilentDeleteIcon,
+        render: msg => {
+            if (msg.author.id !== UserStore.getCurrentUser().id) return null;
 
             return {
                 label: "Silent Delete",
@@ -186,10 +205,6 @@ export default definePlugin({
                 onClick: () => silentDeleteMessage(msg.channel_id, msg.id),
                 dangerous: true
             };
-        }, SilentDeleteIcon);
+        },
     },
-
-    stop() {
-        removeButton("SilentDelete");
-    }
 });
