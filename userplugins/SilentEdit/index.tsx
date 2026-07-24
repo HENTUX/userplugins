@@ -1,41 +1,23 @@
 /*
- * Vencord, a Discord client mod
- * Copyright (c) 2026 Vendicated and contributors
- * SPDX-License-Identifier: GPL-3.0-or-later
+ * SilentEdit - Edit messages without the edit tag showing
+ * PATCH original → new content, intercept MESSAGE_UPDATE to strip edit tag
+ * Uses modal for input — no textarea hacking
  */
 
 import { addMessagePopoverButton as addButton, removeMessagePopoverButton as removeButton } from "@api/MessagePopover";
 import { definePluginSettings } from "@api/Settings";
 import definePlugin, { OptionType } from "@utils/types";
-import { findByPropsLazy } from "@webpack";
-import { ChannelStore, Constants, MessageStore, RestAPI, UserStore } from "@webpack/common";
-
-const MessageActions = findByPropsLazy("deleteMessage", "startEditMessage");
+import { ChannelStore, Constants, FluxDispatcher, MessageStore, Modal, openModal, React, RestAPI, UserStore } from "@webpack/common";
 
 const settings = definePluginSettings({
-    deleteOriginalMessage: {
-        type: OptionType.BOOLEAN,
-        description: "Delete the original server-side message after silent edit. If disabled, the original message will reappear after client reload.",
-        default: true
-    },
-    deleteDelay: {
-        type: OptionType.NUMBER,
-        description: "Delay (in milliseconds) before deleting the original message if enabled.",
-        default: 500
-    },
-    suppressNotifications: {
-        type: OptionType.BOOLEAN,
-        description: "Recommended for use in DMs to prevent pinging users.",
-        default: false
-    },
     interceptAllEdits: {
         type: OptionType.BOOLEAN,
-        description: "Silently edit every message you edit through Discord's normal edit flows, including shortcuts like Up Arrow.",
+        description: "Silently edit EVERY message you edit through Discord's normal edit flows.",
         default: false
     },
     accentColor: {
         type: OptionType.STRING,
-        description: "Accent color for the Silent Edit icon (hex code).",
+        description: "Accent color for the icon.",
         default: "#ed4245"
     }
 });
@@ -46,112 +28,171 @@ const SilentEditIcon = () => (
     </svg>
 );
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const selfEditedMessageIds = new Set<string>();
 
-function sendMessage(content: string, nonce: string, channelId: string, suppressNotifications: boolean, messageReference?: any) {
-    const body: any = {
-        content,
-        flags: suppressNotifications ? 4096 : 0,
-        mobile_network_type: "unknown",
-        nonce,
-        tts: false,
-    };
-
-    if (messageReference) {
-        body.message_reference = {
-            channel_id: messageReference.channel_id,
-            message_id: messageReference.message_id,
-            guild_id: messageReference.guild_id
-        };
+function messageUpdateInterceptor(event: any) {
+    if (event.type !== "MESSAGE_UPDATE") return;
+    const msg = event.message;
+    if (!msg) return;
+    const id = String(msg.id);
+    if (!selfEditedMessageIds.has(id)) return;
+    if (msg.edited_timestamp != null) {
+        msg.edited_timestamp = null;
+        if (Array.isArray(msg.edits)) msg.edits.length = 0;
     }
-
-    return RestAPI.post({
-        url: Constants.Endpoints.MESSAGES(channelId),
-        body
-    });
 }
 
-function deleteMessage(channelId: string, messageId: string) {
-    return RestAPI.del({
-        url: Constants.Endpoints.MESSAGE(channelId, messageId)
-    });
-}
-
-async function silentEditMessage(channelId: string, messageId: string, content: string, messageReference?: any) {
-    let sentReplacement = false;
-
+async function silentEditMessage(channelId: string, messageId: string, newContent: string): Promise<boolean> {
     try {
-        await sendMessage(
-            content,
-            messageId,
-            channelId,
-            settings.store.suppressNotifications,
-            messageReference
-        );
-        sentReplacement = true;
-
-        await sleep(settings.store.deleteDelay);
-
-        if (settings.store.deleteOriginalMessage) {
-            await deleteMessage(channelId, messageId);
-        }
-
+        selfEditedMessageIds.add(String(messageId));
+        await RestAPI.patch({
+            url: Constants.Endpoints.MESSAGE(channelId, messageId),
+            body: { content: newContent }
+        });
+        setTimeout(() => selfEditedMessageIds.delete(String(messageId)), 3000);
         return true;
     } catch (error) {
         console.error("[SilentEdit] Error:", error);
-        return sentReplacement;
+        selfEditedMessageIds.delete(String(messageId));
+        return false;
     }
+}
+
+function EditModal({ onClose, message }: { onClose: () => void; message: any; }) {
+    const [content, setContent] = React.useState(message.content || "");
+    const [saving, setSaving] = React.useState(false);
+
+    async function handleSubmit() {
+        if (!content.trim() || content === message.content) {
+            onClose();
+            return;
+        }
+        setSaving(true);
+        await silentEditMessage(message.channel_id, message.id, content);
+        setSaving(false);
+        onClose();
+    }
+
+    const textareaStyle: React.CSSProperties = {
+        width: "100%",
+        minHeight: "120px",
+        padding: "10px",
+        borderRadius: "6px",
+        background: "var(--input-background)",
+        border: "1px solid var(--background-modifier-accent)",
+        color: "var(--text-normal)",
+        fontSize: "14px",
+        fontFamily: "var(--font-primary)",
+        resize: "vertical" as const,
+        boxSizing: "border-box" as const,
+        outline: "none",
+    };
+
+    const labelStyle: React.CSSProperties = {
+        fontWeight: "600",
+        fontSize: "12px",
+        marginBottom: "6px",
+        display: "block",
+        color: "var(--text-normal)",
+        textTransform: "uppercase" as const,
+    };
+
+    return (
+        <Modal {...{ onClose, transitionState: 0 }} className="vc-silentedit-modal">
+            <div style={{ padding: "16px" }}>
+                <div style={{ marginBottom: "16px" }}>
+                    <h2 style={{ color: "var(--header-primary)", margin: 0, fontSize: "18px" }}>Silent Edit</h2>
+                    <div style={{ color: "var(--text-muted)", fontSize: "12px", marginTop: "4px" }}>
+                        Edit without showing the (edited) tag
+                    </div>
+                </div>
+
+                <label style={labelStyle}>New Content</label>
+                <textarea
+                    value={content}
+                    onChange={e => setContent(e.target.value)}
+                    style={textareaStyle}
+                    autoFocus
+                />
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "16px" }}>
+                    <button
+                        onClick={onClose}
+                        style={{
+                            padding: "6px 16px",
+                            borderRadius: "4px",
+                            background: "var(--background-secondary)",
+                            color: "var(--text-normal)",
+                            border: "none",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                        }}
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        onClick={handleSubmit}
+                        disabled={saving || !content.trim() || content === message.content}
+                        style={{
+                            padding: "6px 16px",
+                            borderRadius: "4px",
+                            background: content.trim() && content !== message.content ? settings.store.accentColor || "#ed4245" : "var(--background-secondary)",
+                            color: "#fff",
+                            border: "none",
+                            cursor: saving ? "not-allowed" : "pointer",
+                            fontSize: "14px",
+                            opacity: saving || !content.trim() || content === message.content ? 0.5 : 1,
+                        }}
+                    >
+                        {saving ? "Saving..." : "Save"}
+                    </button>
+                </div>
+            </div>
+        </Modal>
+    );
+}
+
+function openEditModal(message: any) {
+    openModal(props => <EditModal {...props} message={message} />);
 }
 
 export default definePlugin({
     name: "SilentEdit",
-    description: "\"Silently\" edit a message without showing the edit tag and bypass Vencord's message logger.",
-    authors: [{ name: "Aurick", id: 1348025017233047634n }],
+    description: "Edit messages without the edit tag. Click the icon to open edit modal.",
+    authors: [{ name: "HENTUX", id: 0n }],
     dependencies: ["MessagePopoverAPI"],
     settings,
 
     async onBeforeMessageEdit(channelId, messageId, messageObj) {
-        if (!settings.store.interceptAllEdits || messageObj.content.length === 0) return;
-
+        if (!settings.store.interceptAllEdits || !messageObj.content) return;
         const msg = MessageStore.getMessage(channelId, messageId);
         if (!msg || msg.author.id !== UserStore.getCurrentUser().id) return;
-
-        if (await silentEditMessage(channelId, messageId, messageObj.content, msg.messageReference)) {
+        const newContent = messageObj.content;
+        if (newContent === msg.content) return;
+        if (await silentEditMessage(channelId, messageId, newContent)) {
             return { cancel: true };
         }
     },
 
     start() {
+        FluxDispatcher.addInterceptor(messageUpdateInterceptor);
+
         addButton("SilentEdit", msg => {
             if (msg.author.id !== UserStore.getCurrentUser().id) return null;
-
-            const handleClick = async () => {
-                MessageActions.startEditMessage(msg.channel_id, msg.id, msg.content);
-
-                const originalEditMessage = MessageActions.editMessage;
-
-                MessageActions.editMessage = async function(channelId: string, messageId: string, content: any) {
-                    MessageActions.editMessage = originalEditMessage;
-
-                    if (messageId !== msg.id) {
-                        return originalEditMessage.apply(this, arguments);
-                    }
-
-                    await silentEditMessage(channelId, messageId, content.content, msg.messageReference);
-                };
-            };
-
             return {
                 label: "Silent Edit",
                 icon: SilentEditIcon,
                 message: msg,
                 channel: ChannelStore.getChannel(msg.channel_id),
-                onClick: handleClick
+                onClick: () => openEditModal(msg),
             };
         }, SilentEditIcon);
     },
 
     stop() {
         removeButton("SilentEdit");
+        const list = FluxDispatcher._interceptors ?? [];
+        const idx = list.indexOf(messageUpdateInterceptor);
+        if (idx !== -1) list.splice(idx, 1);
     }
 });
