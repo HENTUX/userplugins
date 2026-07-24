@@ -13,7 +13,7 @@
   </a>
 </p>
 
-<p align="center">77 custom Equicord plugins + source patches</p>
+<p align="center">82 custom Equicord plugins + source patches</p>
 
 ---
 
@@ -48,13 +48,15 @@
 | `notifyUserChanges` | `passwordManager` | `PerformanceBoost` |
 | `personalBadges` | `PlatformEmulator` | `prettyChannelNames` |
 | `RPCStats` | `screenShareDevices` | `SelfBot` |
-| `selfDestruct` | `Signature` | `silentDelete` |
-| `SilentEdit` | `slowmodeAssistant` | `soundboardGod` |
-| `soundboardPermissionsBypass.web` | `SpotifyRichPresencePP` | `streamWatcherIndicator` |
-| `TempMessage` | `TokenCopier` | `tokenLogin` |
-| `tosuRpc` | `UltimateProfileBadgeEditor` | `userPfpServerAvatarFix` |
-| `vAnalyzer` | `vc-junkCleanup` | `viewRawEnhanced` |
-| `voiceChannelLogger` | `YoutubeRPC` |  |
+| `selfDestruct` | `Shazam` | `Signature` |
+| `silentDelete` | `SilentEdit` | `slowmodeAssistant` |
+| `soundboardGod` | `soundboardPermissionsBypass.web` | `SpoofMessage` |
+| `SpotifyRichPresencePP` | `streamWatcherIndicator` | `TempMessage` |
+| `TokenCopier` | `tokenLogin` | `tosuRpc` |
+| `TraktRichPresence` | `UltimateProfileBadgeEditor` | `userPfpServerAvatarFix` |
+| `vAnalyzer` | `vc-junkCleanup` | `ViewMembersWithRole` |
+| `viewRawEnhanced` | `voiceChannelLogger` | `VoiceChatMention` |
+| `YoutubeRPC` |  |  |
 ---
 
 ## Install

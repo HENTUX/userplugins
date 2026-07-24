@@ -8,7 +8,7 @@ import { definePluginSettings } from "@api/Settings";
 import { copyToClipboard } from "@utils/clipboard";
 import definePlugin, { OptionType } from "@utils/types";
 import { NavContextMenuPatchCallback } from "@api/ContextMenu";
-import { FluxDispatcher, Menu, MessageStore, Modal, openModal, React, showToast, Toasts, UserStore } from "@webpack/common";
+import { FluxDispatcher, Menu, MessageStore, Modal, openModal, React, showToast, Toasts } from "@webpack/common";
 
 const DATA_KEY = "MessageKeeper_DeletedMessages";
 
@@ -48,30 +48,63 @@ async function saveDeletedMessage(msg: DeletedMessage) {
     }
 }
 
-function handleDelete(e: any) {
+const msgCache = new Map<string, any>();
+
+function onMessageCreate(e: any) {
+    try {
+        if (e.message) {
+            msgCache.set(`${e.message.channel_id}:${e.message.id}`, e.message);
+            if (msgCache.size > 2000) {
+                const first = msgCache.keys().next().value;
+                if (first) msgCache.delete(first);
+            }
+        }
+    } catch { }
+}
+
+function onMessageDelete(e: any) {
     if (!settings.store.detectDeletes) return;
     try {
         const { id, channel_id } = e;
         if (!id || !channel_id) return;
 
-        const msg = MessageStore?.getMessage(channel_id, id);
-        if (!msg) return;
-
-        const author = msg.author || {};
-        saveDeletedMessage({
-            id: msg.id,
-            channelId: channel_id,
-            guildId: msg.guild_id || null,
-            author: {
-                id: author.id || "unknown",
-                username: author.username || "unknown",
-                globalName: author.globalName || author.username || "unknown",
-                avatar: author.avatar || null,
-            },
-            content: msg.content || "",
-            timestamp: msg.timestamp || new Date().toISOString(),
-            deletedAt: new Date().toISOString(),
-        });
+        const cached = msgCache.get(`${channel_id}:${id}`);
+        if (cached) {
+            const author = cached.author || {};
+            saveDeletedMessage({
+                id: cached.id,
+                channelId: channel_id,
+                guildId: cached.guild_id || null,
+                author: {
+                    id: author.id || "unknown",
+                    username: author.username || "unknown",
+                    globalName: author.globalName || author.username || "unknown",
+                    avatar: author.avatar || null,
+                },
+                content: cached.content || "",
+                timestamp: cached.timestamp || new Date().toISOString(),
+                deletedAt: new Date().toISOString(),
+            });
+            msgCache.delete(`${channel_id}:${id}`);
+        } else {
+            const msg = MessageStore?.getMessage(channel_id, id);
+            if (!msg) return;
+            const author = msg.author || {};
+            saveDeletedMessage({
+                id: msg.id,
+                channelId: channel_id,
+                guildId: msg.guild_id || null,
+                author: {
+                    id: author.id || "unknown",
+                    username: author.username || "unknown",
+                    globalName: author.globalName || author.username || "unknown",
+                    avatar: author.avatar || null,
+                },
+                content: msg.content || "",
+                timestamp: msg.timestamp || new Date().toISOString(),
+                deletedAt: new Date().toISOString(),
+            });
+        }
     } catch (e) {
         console.error("[MessageKeeper] Error handling delete:", e);
     }
@@ -239,12 +272,14 @@ export default definePlugin({
     settings,
 
     start() {
-        FluxDispatcher.subscribe("MESSAGE_DELETE", handleDelete);
+        FluxDispatcher.subscribe("MESSAGE_CREATE", onMessageCreate);
+        FluxDispatcher.subscribe("MESSAGE_DELETE", onMessageDelete);
         addContextMenuPatch("message", ContextMenuPatch);
     },
 
     stop() {
-        FluxDispatcher.unsubscribe("MESSAGE_DELETE", handleDelete);
+        FluxDispatcher.unsubscribe("MESSAGE_CREATE", onMessageCreate);
+        FluxDispatcher.unsubscribe("MESSAGE_DELETE", onMessageDelete);
         removeContextMenuPatch("message", ContextMenuPatch);
     },
 });
