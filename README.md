@@ -9,7 +9,7 @@
 
 <p align="center">
   <a href="https://guns.lol/ovd">
-    <img src="https://img.shields.io/badge/Portfolio-guns.lol/ovd-blueviolet?style=for-the-badge" alt="Portfolio">
+    <img src="https://i.imgur.com/22FKvmB.png-guns.lol/ovd-blueviolet?style=for-the-badge" alt="Portfolio">
   </a>
 </p>
 
