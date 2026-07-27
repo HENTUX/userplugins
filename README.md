@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="[https://cdn3.emoji.gg/emojis/754853-staff.png](https://uploadery.com/api/files/preview?id=6a66c7bb62740c9567805388)" width="400">
+  <img src="[https://cdn3.emoji.gg/emojis/754853-staff.png](https://i.imgur.com/mCAszJv.png)" width="400">
 </p>
 
 <h1 align="center">
