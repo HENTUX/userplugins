@@ -3,7 +3,7 @@
 </p>
 
 <h1 align="center">
-  <img src="https://cdn3.emoji.gg/emojis/515228-staff.png" width="30">
+  <img src="https://i.imgur.com/H5Jh1BW.png" width="30">
   AtlasX #TheRealGod1337 Userplugins
 </h1>
 
